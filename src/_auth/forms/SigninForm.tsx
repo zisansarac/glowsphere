@@ -237,7 +237,7 @@ const SigninForm = () => {
       <div 
       className="fixed z-50"
       style={{
-        top: '100px',
+        top: '110px',
         left: '50px',
         height: '160px',
               
@@ -259,12 +259,12 @@ const SigninForm = () => {
           
           <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">Log in to your account</h2>
           <p className="text-dark-3 small-medium md:base-regular mt-2">
-            Welcome back to GlowSphere! Please enter your details
+            Welcome back to GlowSphere! Please enter your details!
           </p>
 
           <form
             onSubmit={form.handleSubmit(handleSignin)}
-            className="flex flex-col gap-5 w-full mt-4"
+            className="flex flex-col gap-4 w-full mt-3"
           >
             <FormField
               control={form.control}
