@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { useSignOutAccount } from '@/lib/react-query/queriesAndMutations';
 import { useEffect } from 'react';
 import { useUserContext } from '@/context/AuthContext';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 const Topbar = () => {
 
@@ -19,6 +20,22 @@ const Topbar = () => {
     <section className="topbar">
        <div className="flex-between py-4 px-5">
           <Link to="/" className="flex gap-3 items-center">
+          <div 
+               className="fixed z-50"
+               style={{
+                 top: '35px',
+                 left: '90px',
+                 height: '60px',
+                       
+               }}
+             >
+               <DotLottieReact
+               src="https://lottie.host/ad4a5500-7271-467a-a261-69b1900f4377/zwqIzu1dke.lottie"
+               loop
+               autoplay
+               
+             />
+             </div> 
           <img 
           src="/assets/images/logo.svg"
            alt="logo"

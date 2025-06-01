@@ -13,8 +13,8 @@ import { QUERY_KEYS } from './queryKeys'
 export const useCreateUserAccount = () => {
     return useMutation({
         mutationFn: (user: INewUser) => createUserAccount(user)
-    })
-}
+    });
+};
 
 export const useSignInAccount = () => {
     return useMutation({
@@ -173,8 +173,8 @@ export const useGetUserPosts = (userId?: string) => {
 export const useGetPosts = () => {
   return useInfiniteQuery({
     queryKey: [QUERY_KEYS.GET_INFINITE_POSTS],
-    queryFn: getInfinitePosts,
-    getNextPageParam: (lastPage) => {
+    queryFn: getInfinitePosts as any,
+    getNextPageParam: (lastPage: any) => {
       // If there's no data, there are no more pages.
       if (lastPage && lastPage.documents.length === 0) {
         return null;
@@ -224,27 +224,3 @@ export const useUpdateUser = () => {
   });
 };
 
-
-// export const useFollowUser = () => {
-//   const queryClient = useQueryClient();
-//   return useMutation({
-//     mutationFn: (followerId:IUser, followingId: IUser) => followUser(followerId, followingId), // Assuming you have a followUser function defined
-//     onSuccess: (data) => {
-//       // Invalidate relevant queries, such as user profile, feed, etc.
-//       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_CURRENT_USER] });
-//       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_USER_BY_ID, data?.$id] });
-//     },
-//   });
-// };
-
-// export const useUnfollowUser = () => {
-//   const queryClient = useQueryClient();
-//   return useMutation({
-//     mutationFn: (followingId: string) => unfollowUser(followingId), // Assuming you have an unfollowUser function defined
-//     onSuccess: () => {
-//       // Invalidate relevant queries, such as user profile, feed, etc.
-//       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_CURRENT_USER] });
-//       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GET_USER_BY_ID, followingId] });
-//     },
-//   });
-// };

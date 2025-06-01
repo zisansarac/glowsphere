@@ -1,279 +1,257 @@
-import { ID, Query, ImageGravity } from 'appwrite';
+import { ID, Query } from "appwrite";
 
-import { INewPost, INewUser, IUpdatePost, IUpdateUser } from "@/types";
-import { account, appwriteConfig, avatars, client, databases, storage } from './config';
+import { appwriteConfig, account, databases, storage, avatars } from "./config";
+import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
 
+// ============================================================
+// AUTH
+// ============================================================
 
-export async function createUserAccount(user:INewUser) {
-    try {
-        const newAccount = await account.create(
-           ID.unique(),
-           user.email,
-           user.password,
-           user.name
-        );
+// ============================== SIGN UP
+export async function createUserAccount(user: INewUser) {
+  try {
+    const newAccount = await account.create(
+      ID.unique(),
+      user.email,
+      user.password,
+      user.name
+    );
 
-    if(!newAccount) throw Error;
-    
+    if (!newAccount) throw Error;
+
     const avatarUrl = avatars.getInitials(user.name);
 
-     const newUser = await saveUserToDB({
-        accountId: newAccount.$id,
-        name: newAccount.name,
-        email: newAccount.email,
-        username: user.username,
-        imageUrl: new URL(avatarUrl),
+    const newUser = await saveUserToDB({
+      accountId: newAccount.$id,
+      name: newAccount.name,
+      email: newAccount.email,
+      username: user.username,
+      imageUrl: avatarUrl,
+    });
 
-     });
-        
-
-        return newUser;
-    } catch (error) {
-        console.log(error);
-        return error;
-    }
-}
-
-export async function saveUserToDB(user: {
-   accountId: string;
-   email: string;
-   name: string;
-   imageUrl: URL;
-   username? : string;
-}) {
-    try {
-        const newUser = await databases.createDocument(
-            appwriteConfig.databaseId,
-            appwriteConfig.userCollectionId,
-            ID.unique(),
-            user
-        );
-        return newUser;
-    } catch (error) {
-        console.log(error);
-    }
-
-}
-
-export async function signInAccount(user: { email: string; password: string }) {
-  try {
-      // Oturum oluştur
-      const session = await account.createEmailPasswordSession(user.email, user.password);
-      
-      // ÖNEMLİ: Oluşturulan oturumu client'a bildir
-      // Bu satır eksikti ve muhtemelen hatanın ana sebebi
-      client.setSession(session.secret);
-      
-      return session;
+    return newUser;
   } catch (error) {
-      console.log(error);
-      throw error; // Hata fırlatarak çağıran kodun hatayı ele almasını sağlayın
+    console.log(error);
+    return error;
   }
 }
+
+// ============================== SAVE USER TO DB
+export async function saveUserToDB(user: {
+  accountId: string;
+  email: string;
+  name: string;
+  imageUrl: URL | string;
+  username?: string;
+}) {
+  try {
+    const newUser = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      ID.unique(),
+      user
+    );
+
+    return newUser;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// ============================== SIGN IN
+export async function signInAccount(user: { email: string; password: string }) {
+  try {
+
+    
+    const session = await account.createEmailPasswordSession(user.email, user.password);
+   await new Promise(resolve => setTimeout(resolve, 300));
+    
+    return session;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// ============================== GET ACCOUNT
+// Hesap servisini projenize göre import edin
+// Örneğin: import { account } from './accountService' veya Client SDK'dan;
+
+// TypeScript için Models veya türleri import edin (gerekirse)
+// import { Models } from 'appwrite';
 
 export async function getAccount() {
   try {
-      const currentAccount = await account.get();
-      return currentAccount;
+    const currentAccount = await account.get();
+    console.log(currentAccount);
+    return currentAccount;
   } catch (error) {
-      console.log(error);
-      return null; // Hata durumunda null döndür (kullanıcı giriş yapmamış olabilir)
+    console.log("Hesap bilgisi alınamadı:", error);
+    // null döndürmek daha güvenli bir yaklaşım olabilir
+    return null;
   }
 }
 
+
+
+// ============================== GET USER
 export async function getCurrentUser() {
   try {
-      const currentAccount = await account.get();
-      
-      if (!currentAccount) throw Error("Kullanıcı hesabı bulunamadı");
-      
-      const currentUser = await databases.listDocuments(
-          appwriteConfig.databaseId,
-          appwriteConfig.userCollectionId,
-          [Query.equal('accountId', currentAccount.$id)]
-      );
-      
-      if(!currentUser) throw Error("Kullanıcı bilgileri bulunamadı");
-      
-      return currentUser.documents[0];
+    const currentAccount = await getAccount();
+    if (!currentAccount) return null;
+
+    const currentUser = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      [Query.equal("accountId", currentAccount.$id)]
+    );
+
+    if (!currentUser || !currentUser.documents.length) return null;
+
+    return currentUser.documents[0];
   } catch (error) {
-      console.log(error);
-      return null;
+    console.log("Kullanıcı bilgisi alınamadı:", error);
+    return null;
   }
 }
+
+
 
 // ============================== SIGN OUT
 export async function signOutAccount() {
-    try {
-      const session = await account.deleteSession("current");
-  
-      return session;
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  // ============================== CREATE POST
-export async function createPost(post: INewPost) {
-    try {
-      // Upload file to appwrite storage
-      const uploadedFile = await uploadFile(post.file[0]);
-  
-      if (!uploadedFile) throw Error;
-  
-      // Get file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
-      if (!fileUrl) {
-        await deleteFile(uploadedFile.$id);
-        throw Error;
-      }
-  
-      // Convert tags into array
-      const tags = post.tags?.replace(/ /g, "").split(",") || [];
-  
-      // Create post
-      const newPost = await databases.createDocument(
-        appwriteConfig.databaseId,
-        appwriteConfig.postCollectionId,
-        ID.unique(),
-        {
-          creator: post.userId,
-          caption: post.caption,
-          imageUrl: fileUrl,
-          imageId: uploadedFile.$id,
-          location: post.location,
-          tags: tags,
-        }
-      );
-  
-      if (!newPost) {
-        await deleteFile(uploadedFile.$id);
-        throw Error;
-      }
-  
-      return newPost;
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  // ============================== UPLOAD FILE
-export async function uploadFile(file: File) {
-    try {
-      const uploadedFile = await storage.createFile(
-        appwriteConfig.storageId,
-        ID.unique(),
-        file
-      );
-  
-      return uploadedFile;
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  // ============================== GET FILE URL
-export function getFilePreview(fileId: string) {
-    try {
-      const fileUrl = storage.getFilePreview(
-        appwriteConfig.storageId,
-        fileId,
-        2000,
-        2000,
-        ImageGravity.Top,
-        100
-      );
-  
-      if (!fileUrl) throw Error;
-  
-      return fileUrl;
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  // ============================== DELETE FILE
-export async function deleteFile(fileId: string) {
-    try {
-      await storage.deleteFile(appwriteConfig.storageId, fileId);
-  
-      return { status: "ok" };
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  
-  export async function getRecentPosts() {
-    try {
-      const posts = await databases.listDocuments(
-        appwriteConfig.databaseId,
-        appwriteConfig.postCollectionId,
-        [Query.orderDesc("$createdAt"), Query.limit(20)]
-      );
-  
-      if (!posts) throw Error;
-  
-      return posts;
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  // ============================== LIKE / UNLIKE POST
-export async function likePost(postId: string, likesArray: string[]) {
   try {
-    const updatedPost = await databases.updateDocument(
+    const session = await account.deleteSession("current");
+    
+    return session;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// ============================================================
+// POSTS
+// ============================================================
+
+// ============================== CREATE POST
+export async function createPost(post: INewPost) {
+  try {
+    // Upload file to appwrite storage
+    const uploadedFile = await uploadFile(post.file[0]);
+
+    if (!uploadedFile) throw Error;
+
+    // Get file url
+    const fileUrl = getFileView(uploadedFile.$id);
+    if (!fileUrl) {
+      await deleteFile(uploadedFile.$id);
+      throw Error;
+    }
+
+    // Convert tags into array
+    const tags = post.tags?.replace(/ /g, "").split(",") || [];
+
+    // Create post
+    const newPost = await databases.createDocument(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
-      postId,
-      {
-        likes: likesArray,
-      }
-    );
-
-    if (!updatedPost) throw Error;
-
-    return updatedPost;
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-
-// ============================== SAVE POST
-export async function savePost(userId: string, postId: string) {
-  try {
-    const updatedPost = await databases.createDocument(
-      appwriteConfig.databaseId,
-      appwriteConfig.savesCollectionId,
       ID.unique(),
       {
-        user: userId,
-        post: postId,
+        creator: post.userId,
+        caption: post.caption,
+        imageUrl: fileUrl,
+        imageId: uploadedFile.$id,
+        location: post.location,
+        tags: tags,
       }
     );
 
-    if (!updatedPost) throw Error;
+    if (!newPost) {
+      await deleteFile(uploadedFile.$id);
+      throw Error;
+    }
 
-    return updatedPost;
+    return newPost;
   } catch (error) {
     console.log(error);
   }
 }
 
-// ============================== DELETE SAVED POST
-export async function deleteSavedPost(savedRecordId: string) {
+// ============================== UPLOAD FILE
+export async function uploadFile(file: File) {
   try {
-    const statusCode = await databases.deleteDocument(
-      appwriteConfig.databaseId,
-      appwriteConfig.savesCollectionId,
-      savedRecordId
+    const uploadedFile = await storage.createFile(
+      appwriteConfig.storageId,
+      ID.unique(),
+      file
     );
 
-    if (!statusCode) throw Error;
+    return uploadedFile;
+  } catch (error) {
+    console.log(error);
+  }
+}
 
-    return { status: "Ok" };
+// ============================== GET FILE URL
+export function getFileView(fileId: string) {
+  try {
+    const fileUrl = storage.getFileView(
+      appwriteConfig.storageId,
+      fileId,
+    
+    );
+
+    if (!fileUrl) throw Error;
+
+    return fileUrl;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// ============================== DELETE FILE
+export async function deleteFile(fileId: string) {
+  try {
+    await storage.deleteFile(appwriteConfig.storageId, fileId);
+
+    return { status: "ok" };
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// ============================== GET POSTS
+export async function searchPosts(searchTerm: string) {
+  try {
+    const posts = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      [Query.search("caption", searchTerm)]
+    );
+
+    if (!posts) throw Error;
+
+    return posts;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
+  const queries: any[] = [Query.orderDesc("$updatedAt"), Query.limit(9)];
+
+  if (pageParam) {
+    queries.push(Query.cursorAfter(pageParam.toString()));
+  }
+
+  try {
+    const posts = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      queries
+    );
+
+    if (!posts) throw Error;
+
+    return posts;
   } catch (error) {
     console.log(error);
   }
@@ -314,13 +292,13 @@ export async function updatePost(post: IUpdatePost) {
       if (!uploadedFile) throw Error;
 
       // Get new file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
+      const fileUrl = getFileView(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
         throw Error;
       }
 
-      image = { ...image, imageUrl: new URL(fileUrl), imageId: uploadedFile.$id };
+      image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
     }
 
     // Convert tags into array
@@ -383,6 +361,63 @@ export async function deletePost(postId?: string, imageId?: string) {
   }
 }
 
+// ============================== LIKE / UNLIKE POST
+export async function likePost(postId: string, likesArray: string[]) {
+  try {
+    const updatedPost = await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      postId,
+      {
+        likes: likesArray,
+      }
+    );
+
+    if (!updatedPost) throw Error;
+
+    return updatedPost;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// ============================== SAVE POST
+export async function savePost(userId: string, postId: string) {
+  try {
+    const updatedPost = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.savesCollectionId,
+      ID.unique(),
+      {
+        user: userId,
+        post: postId,
+      }
+    );
+
+    if (!updatedPost) throw Error;
+
+    return updatedPost;
+  } catch (error) {
+    console.log(error);
+  }
+}
+// ============================== DELETE SAVED POST
+export async function deleteSavedPost(savedRecordId: string) {
+  try {
+    const statusCode = await databases.deleteDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.savesCollectionId,
+      savedRecordId
+    );
+
+    if (!statusCode) throw Error;
+
+    return { status: "Ok" };
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 // ============================== GET USER'S POST
 export async function getUserPosts(userId?: string) {
   if (!userId) return;
@@ -401,6 +436,27 @@ export async function getUserPosts(userId?: string) {
     console.log(error);
   }
 }
+
+// ============================== GET POPULAR POSTS (BY HIGHEST LIKE COUNT)
+export async function getRecentPosts() {
+  try {
+    const posts = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      [Query.orderDesc("$createdAt"), Query.limit(20)]
+    );
+
+    if (!posts) throw Error;
+
+    return posts;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+// ============================================================
+// USER
+// ============================================================
 
 // ============================== GET USERS
 export async function getUsers(limit?: number) {
@@ -457,7 +513,7 @@ export async function updateUser(user: IUpdateUser) {
       if (!uploadedFile) throw Error;
 
       // Get new file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
+      const fileUrl = getFileView(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
         throw Error;
@@ -499,160 +555,3 @@ export async function updateUser(user: IUpdateUser) {
     console.log(error);
   }
 }
-
-// ============================== GET POSTS
-export async function searchPosts(searchTerm: string) {
-  try {
-    const posts = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.postCollectionId,
-      [Query.search("caption", searchTerm)]
-    );
-
-    if (!posts) throw Error;
-
-    return posts;
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-export async function getInfinitePosts({ pageParam }: { pageParam: number }) {
-  const queries: any[] = [Query.orderDesc("$updatedAt"), Query.limit(9)];
-
-  if (pageParam) {
-    queries.push(Query.cursorAfter(pageParam.toString()));
-  }
-
-  try {
-    const posts = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.postCollectionId,
-      queries
-    );
-
-    if (!posts) throw Error;
-
-    return posts;
-  } catch (error) {
-    console.log(error);
-  }
-}
-
-// export async function followUser(followerId: string, followingId: string) {
-//   try {
-//     const follow = await databases.createDocument(
-//       appwriteConfig.databaseId,
-//       appwriteConfig.followsCollectionId,
-//       ID.unique(),
-//       {
-//         follower: followerId,
-//         following: followingId,
-//       }
-//     );
-
-//     if (!follow) throw Error;
-
-//     return follow;
-//   } catch (error) {
-//     console.log(error);
-//   }
-// }
-
-// export async function unfollowUser(followerId: string, followingId: string) {
-//   try {
-//     const query = [
-//       Query.equal('follower', followerId),
-//       Query.equal('following', followingId),
-//     ];
-//     const response = await databases.listDocuments(
-//       appwriteConfig.databaseId,
-//       appwriteConfig.followsCollectionId,
-//       query
-//     );
-
-//     if (response.documents.length > 0) {
-//       const documentId = response.documents[0].$id;
-//       await databases.deleteDocument(
-//         appwriteConfig.databaseId,
-//         appwriteConfig.followsCollectionId,
-//         documentId
-//       );
-//       return true;
-//     } else {
-//       return false; // Or throw an error indicating the user isn't following the other
-//     }
-//   } catch (error) {
-//     console.log(error);
-//   }
-// }
-
-// Takip etme fonksiyonu
-// export const followUser = async (followerId: string, followedId: string) => {
-//   try {
-//     // Takip etme işlemini veritabanına kaydet
-//     const followData = {
-//       followerId: followerId,
-//       followedId: followedId,
-//       timestamp: new Date().toISOString(),
-//     };
-
-//     // Veritabanında takip ilişkisini ekle
-//     const result = await databases.createDocument(
-//       appwriteConfig.databaseId,
-//       appwriteConfig.followCollectionId, // Takip koleksiyonu
-//       'unique()', // Unique id
-//       followData
-//     );
-
-//     return result;  // Takip ilişkisini başarıyla kaydet
-//   } catch (error) {
-//     console.error('Takip etme işlemi sirasinda hata oluştu: ', error);
-//     throw error;  // Hata durumunda hata fırlat
-//   }
-// };
-
-// // API fonksiyonu: Takipten Çıkma
-// export const unfollowUser = async (followerId: string, followedId: string) => {
-//   try {
-//     // Takip ilişkisini veritabanından sil
-//     const result = await databases.deleteDocument(
-//       appwriteConfig.databaseId,
-//       appwriteConfig.followCollectionId,
-//       `unique(${followerId}_${followedId})`  // Takip ilişkisini eşsiz bir id ile sil
-//     );
-
-//     return result;  // Takipten çıkma işlemi başarıyla tamamlandı
-//   } catch (error) {
-//     console.error('Takipten çıkma işlemi sırasında hata oluştu: ', error);
-//     throw error;  // Hata durumunda hata fırlat
-//   }
-// };
-
-// // API fonksiyonu: Takipçileri ve Takip Edilenleri Getirme
-// export const getFollowersAndFollowing = async (userId: string) => {
-//   try {
-//     // Takip edilenleri sorgula
-//     const following = await databases.listDocuments(
-//       appwriteConfig.databaseId,
-//       appwriteConfig.followCollectionId,
-//       [
-//         Query.equal('followerId', userId)
-//       ]
-//     );
-
-//     // Takipçileri sorgula
-//     const followers = await databases.listDocuments(
-//       appwriteConfig.databaseId,
-//       appwriteConfig.followCollectionId,
-//       [
-//         Query.equal('followedId', userId)
-//       ]
-//     );
-
-//     return { following: following.documents, followers: followers.documents };
-//   } catch (error) {
-//     console.error('Takipçi ve takip edilenler alınırken hata oluştu: ', error);
-//     throw error;
-//   }
-// };

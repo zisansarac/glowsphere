@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 import { useUserContext } from '@/context/AuthContext';
 import { sidebarLinks } from '@/constants';
 import { INavLink } from '@/types';
+import { account } from '@/lib/appwrite/config';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 
 const LeftSidebar = () => {
@@ -13,6 +15,15 @@ const LeftSidebar = () => {
   const { mutate: signOut, isSuccess } = useSignOutAccount();
   const navigate = useNavigate();
   const { user } = useUserContext();
+
+   const handleLogout = async () => {
+    try {
+      await account.deleteSession("current");
+      navigate("/login");
+    } catch (error) {
+      console.error("Çıkış hatası:", error);
+    }
+  };
 
   useEffect(() => {
      if (isSuccess) navigate(0);
@@ -22,7 +33,24 @@ const LeftSidebar = () => {
     <nav className="leftsidebar">
         <div className="flex flex-col gap-11">
         <Link to="/" className="flex gap-3 items-center">
-          <img 
+         
+         <div 
+               className="fixed z-50"
+               style={{
+                 top: '62px',
+                 left: '110px',
+                 height: '85px',
+                       
+               }}
+             >
+               <DotLottieReact
+               src="https://lottie.host/ad4a5500-7271-467a-a261-69b1900f4377/zwqIzu1dke.lottie"
+               loop
+               autoplay
+               
+             />
+             </div> 
+             <img 
           src="/assets/images/logo.svg"
            alt="logo"
            width={170}

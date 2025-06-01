@@ -2,7 +2,7 @@
 
 export type IContextType = {
   user: IUser;
-  isLoading: boolean;
+  isPending: boolean;
   setUser: React.Dispatch<React.SetStateAction<IUser>>;
   isAuthenticated: boolean;
   setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
@@ -12,7 +12,7 @@ export type IContextType = {
 
 
 export type INavLink = {
-    imgURL: string;
+    imageUrl: string | URL;
     route: string;
     label: string;
   };
@@ -31,7 +31,7 @@ export type INavLink = {
     postId: string;
     caption: string;
     imageId: string;
-    imageUrl: URL;
+    imageUrl: URL | string;
     file: File[];
     location?: string;
     tags?: string;
@@ -42,7 +42,7 @@ export type INavLink = {
     name: string;
     username: string;
     email: string;
-    imageUrl: string;
+    imageUrl: string | URL;
     bio: string;
     
   };

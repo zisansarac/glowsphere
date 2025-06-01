@@ -29,9 +29,6 @@ type PostFormProps = {
 
 const PostForm = ({post, action}: PostFormProps) => {
 
-  const { mutateAsync: createPost, isPending: isLoadingCreate } = useCreatePost();
-  const { mutateAsync: updatePost, isPending: isLoadingUpdate } =
-    useUpdatePost();
   const { user } = useUserContext();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -46,7 +43,11 @@ const PostForm = ({post, action}: PostFormProps) => {
       tags: post ? post?.tags.join(','): ''
 
     },
-  })
+  });
+
+  const { mutateAsync: createPost, isPending: isLoadingCreate } = useCreatePost();
+  const { mutateAsync: updatePost, isPending: isLoadingUpdate } = useUpdatePost();
+  
 
   
 

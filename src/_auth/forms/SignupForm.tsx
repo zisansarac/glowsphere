@@ -23,9 +23,11 @@ import { useUserContext } from "@/context/AuthContext";
 
 
 const SignupForm = () => {
+
+  
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { checkAuthUser, isLoading: isUserLoading } = useUserContext(); 
+  const { checkAuthUser, isPending: isUserLoading } = useUserContext(); 
   
   
 
@@ -47,27 +49,27 @@ const SignupForm = () => {
 
 
    // Handler
-   const handleSignup = async (user: z.infer<typeof SignupValidation>) => {
+   const handleSignup = async (values: z.infer<typeof SignupValidation>) => {
     try {
-      const newUser = await createUserAccount(user);
+      const newUser = await createUserAccount(values);
 
       if (!newUser) {
-        toast({ title: "Sign up failed. Please try again.", });
+        return toast({ title: "Sign up failed. Please try again."});
         
-        return;
+        
       }
 
       const session = await signInAccount({
-        email: user.email,
-        password: user.password,
+        email: values.email,
+        password: values.password,
       });
 
       if (!session) {
-        toast({ title: "Something went wrong. Please login your new account", });
+        return toast({ title: "Sign in failed. Please try again."});
         
-        navigate("/sign-in");
+        //navigate("/sign-in");
         
-        return;
+       
       }
         
 
@@ -78,9 +80,8 @@ const SignupForm = () => {
 
         navigate("/");
       } else {
-        toast({ title: "Login failed. Please try again.", });
+        return toast({ title: "Sign up failed. Please try again."});
         
-        return;
       }
     } catch (error) {
       console.log({ error });
@@ -156,11 +157,11 @@ const SignupForm = () => {
             )}
           />
           <Button type="submit" className="shad-button_primary">
-              {isCreatingAccount ? (
+              {isCreatingAccount || isSigningInUser || isUserLoading ? (
                 <div className="flex-center gap-2">
                    <Loader/>Loading...
-                </div>
-              ) : "Sign up"}
+                </div> 
+              ) : ("Sign up")}
 
           </Button>
 
