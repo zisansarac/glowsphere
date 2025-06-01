@@ -13,7 +13,7 @@ const Topbar = () => {
    const { user } = useUserContext();
 
    useEffect(() => {
-      if (isSuccess) navigate(0);
+      if (isSuccess) window.location.href = '/sign-in';
    },[isSuccess])
 
   return (

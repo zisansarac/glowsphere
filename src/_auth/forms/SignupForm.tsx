@@ -19,6 +19,7 @@ import { SignupValidation } from "@/lib/validation";
 import Loader from "@/components/shared/Loader";
 import { useCreateUserAccount, useSignInAccount } from "@/lib/react-query/queriesAndMutations";
 import { useUserContext } from "@/context/AuthContext";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 
 
@@ -89,9 +90,27 @@ const SignupForm = () => {
   };
 
   return (
-    
+    <>
+    <div 
+      className="fixed z-50"
+      style={{
+        top: '10px',
+        left: '50px',
+        height: '160px',
+              
+      }}
+    >
+      <DotLottieReact
+      src="https://lottie.host/ad4a5500-7271-467a-a261-69b1900f4377/zwqIzu1dke.lottie"
+      loop
+      autoplay
+      
+    />
+    </div>
       <Form {...form}>
       <div className="sm:w-420 flex-center flex-col" >
+
+
         <img src= "/assets/images/logo.svg"  />
 
         <h2 className="h3-bold md:h2-bold pt-5 sm:pt-12">Create a new account</h2>
@@ -173,8 +192,10 @@ const SignupForm = () => {
 
         </div>
       </Form>
-    
+   
+    </>
   );
 };
+
 
 export default SignupForm;

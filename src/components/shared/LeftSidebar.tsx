@@ -16,17 +16,17 @@ const LeftSidebar = () => {
   const navigate = useNavigate();
   const { user } = useUserContext();
 
-   const handleLogout = async () => {
-    try {
-      await account.deleteSession("current");
-      navigate("/login");
-    } catch (error) {
-      console.error("Çıkış hatası:", error);
-    }
-  };
+  //  const handleLogout = async () => {
+  //   try {
+  //     await account.deleteSession("current");
+  //     navigate("/login");
+  //   } catch (error) {
+  //     console.error("Çıkış hatası:", error);
+  //   }
+  // };
 
   useEffect(() => {
-     if (isSuccess) navigate(0);
+     if (isSuccess) window.location.href = '/sign-in';
   },[isSuccess])
 
   return (
