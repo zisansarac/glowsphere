@@ -20,4 +20,37 @@ Sanata ve yaratıcılığa değer veren kullanıcıların kendilerini ifade edeb
 - Responsive ve estetik arayüz
 - Kullanıcı girişi & profiller
 
+# [ENG]
+
+# 🎨 GlowSphere
+
+**GlowSphere** is a social sharing platform designed to bring together art lovers and creatives.  
+Inspired by platforms like **Pinterest** and **Blogger**, it allows users to share artworks, get inspired, and interact with creative communities.
+
+---
+
+## 🎯 Project Purpose
+
+To offer a unique and expressive social media experience for users who value art and creativity.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React, TypeScript, Tailwind CSS  
+- **Backend:** Appwrite (BaaS - Backend as a Service)
+
+---
+
+## ✨ Features
+
+- 🎨 Share artworks (image, description, tags)
+- 🖼️ Artistic content feed
+- 🧩 Filter by categories and tags
+- 📱 Fully responsive and aesthetic UI
+- 👤 User authentication & profile management
+
+
+
+
 
